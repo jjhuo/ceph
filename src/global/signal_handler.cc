@@ -101,7 +101,6 @@ static void handle_fatal_signal(int signum)
 	    "in thread %llx\n", sig_str(signum), (unsigned long long)pthread_self());
 #endif
   dout_emergency(buf);
-  pidfile_remove();
 
   // avoid recursion back into logging code if that is where
   // we got the SEGV.
