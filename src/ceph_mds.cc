@@ -240,8 +240,6 @@ int main(int argc, const char **argv)
   mds->mds_lock.Lock();
   mds->mds_lock.Unlock();
 
-  pidfile_remove();
-
   // only delete if it was a clean shutdown (to aid memory leak
   // detection, etc.).  don't bother if it was a suicide.
   if (mds->is_clean_shutdown()) {
