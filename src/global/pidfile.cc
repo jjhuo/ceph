@@ -40,7 +40,13 @@ struct pidfh {
   pidfh() : pf_fd(-1), pf_dev(0), pf_ino(0) {
     memset(pf_path, 0, sizeof(pf_path));
   }
+
+  ~pidfh() {
+    remove();
+  }
   
+  int remove();
+
   void close() {
     pf_fd = -1;
     pf_path[0] = '\0';
@@ -93,16 +99,16 @@ int pidfile_write()
   return 0;
 }
 
-int pidfile_remove()
+int pidfh::remove()
 {
-  if (!pfh.pf_path[0]) {
+  if (!pf_path[0]) {
     return 0;
   }
 
   int ret;
   if ((ret = pidfile_verify()) < 0) {
-    if (pfh.pf_fd != -1) {
-      ::close(pfh.pf_fd);
+    if (pf_fd != -1) {
+      ::close(pf_fd);
     }
     return ret;
   }
@@ -110,9 +116,9 @@ int pidfile_remove()
   // only remove it if it has OUR pid in it!
   char buf[32];
   memset(buf, 0, sizeof(buf));
-  ssize_t res = safe_read(pfh.pf_fd, buf, sizeof(buf));
-  if (pfh.pf_fd != -1) {
-    ::close(pfh.pf_fd);
+  ssize_t res = safe_read(pf_fd, buf, sizeof(buf));
+  if (pf_fd != -1) {
+    ::close(pf_fd);
   }
 
   if (res < 0) {
@@ -123,11 +129,11 @@ int pidfile_remove()
   if (a != getpid()) {
     return -EDOM;
   }
-  res = ::unlink(pfh.pf_path);
+  res = ::unlink(pf_path);
   if (res) {
     return res;
   }
-  pfh.close();
+  close();
   return 0;
 }
 
@@ -144,7 +150,7 @@ int pidfile_open(const md_config_t *conf)
   }
 
   int fd;
-  fd = ::open(pfh.pf_path, O_CREAT|O_WRONLY, 0644);
+  fd = ::open(pfh.pf_path, O_CREAT|O_WRONLY|O_TRUNC, 0644);
   if (fd < 0) {
     int err = errno;
     derr << "write_pid_file: failed to open pid file '"
