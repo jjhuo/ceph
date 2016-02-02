@@ -13,6 +13,7 @@ add_subdirectory(cls_replica_log)
 add_subdirectory(cls_rgw)
 add_subdirectory(cls_statelog)
 add_subdirectory(cls_version)
+add_subdirectory(compressor)
 
 # test_timers
 add_executable(ceph_test_timers
