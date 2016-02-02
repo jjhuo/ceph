@@ -11,7 +11,7 @@ function run() {
     local dir=$1
     shift
 
-    export CEPH_MON="127.0.0.1:17108"
+    export CEPH_MON="127.0.0.1:7124" # git grep '\<7124\>' : there must be only one
     export CEPH_ARGS
     CEPH_ARGS+="--fsid=$(uuidgen) --auth-supported=none "
     CEPH_ARGS+="--mon-host=$CEPH_MON "
@@ -26,8 +26,8 @@ function TEST_without_pidfile() {
     local dir=$1
     setup $dir
     local RUNID=`uuidgen`
-    run_mon $dir a --pid-file= --daemonize=$RUNID || { teardown_unexist_pidfile $dir; return 1; } 
-    run_osd $dir 0 --pid-file= --daemonize=$RUNID || { teardown_unexist_pidfile $dir; return 1; }
+    run_mon $dir a --pid-file= --daemonize=$RUNID || { teardown_unexist_pidfile $dir $RUNID; return 1; }
+    run_osd $dir 0 --pid-file= --daemonize=$RUNID || { teardown_unexist_pidfile $dir $RUNID; return 1; }
     teardown_unexist_pidfile $dir $RUNID || return 1
 }
 

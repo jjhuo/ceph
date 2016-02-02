@@ -253,11 +253,6 @@ void global_print_banner(void)
   output_ceph_version();
 }
 
-static void pidfile_remove_void(void)
-{
-  pidfile_remove();
-}
-
 int global_init_prefork(CephContext *cct)
 {
   if (g_code_env != CODE_ENVIRONMENT_DAEMON)
@@ -268,11 +263,6 @@ int global_init_prefork(CephContext *cct)
 
     if (pidfile_open(g_conf) < 0) {
       exit(1);
-    }
-
-    if (atexit(pidfile_remove_void)) {
-      derr << "global_init_daemonize: failed to set pidfile_remove function "
-	   << "to run at exit." << dendl;
     }
     pidfile_write();
 
@@ -311,15 +301,6 @@ void global_init_postfork_start(CephContext *cct)
   // restart log thread
   g_ceph_context->_log->start();
 
-  if (pidfile_open(g_conf) < 0) {
-    exit(1);
-  }
-
-  if (atexit(pidfile_remove_void)) {
-    derr << "global_init_daemonize: failed to set pidfile_remove function "
-	 << "to run at exit." << dendl;
-  }
-
   /* This is the old trick where we make file descriptors 0, 1, and possibly 2
    * point to /dev/null.
    *
@@ -343,6 +324,9 @@ void global_init_postfork_start(CephContext *cct)
     exit(1);
   }
 
+  if (pidfile_open(g_conf) < 0) {
+    exit(1);
+  }
   pidfile_write();
 }
 

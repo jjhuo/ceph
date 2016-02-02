@@ -40,7 +40,13 @@ struct pidfh {
   pidfh() : pf_fd(-1), pf_dev(0), pf_ino(0) {
     memset(pf_path, 0, sizeof(pf_path));
   }
+
+  ~pidfh() {
+    remove();
+  }
   
+  int remove();
+
   void close() {
     pf_fd = -1;
     pf_path[0] = '\0';
@@ -82,6 +88,13 @@ int pidfile_write()
   
   char buf[32];
   int len = snprintf(buf, sizeof(buf), "%d\n", getpid());
+  if (::ftruncate(pfh.pf_fd, 0) < 0) {
+    int err = errno;
+    derr << "write_pid_file: failed to ftrunctate the pid file '"
+	 << pfh.pf_path << "': " << cpp_strerror(err) << dendl;
+    pfh.close();
+    return err;
+  }
   ret = safe_write(pfh.pf_fd, buf, len);
   if (ret < 0) {
     derr << "write_pid_file: failed to write to pid file '"
@@ -93,16 +106,16 @@ int pidfile_write()
   return 0;
 }
 
-int pidfile_remove()
+int pidfh::remove()
 {
-  if (!pfh.pf_path[0]) {
+  if (!pf_path[0]) {
     return 0;
   }
 
   int ret;
   if ((ret = pidfile_verify()) < 0) {
-    if (pfh.pf_fd != -1) {
-      ::close(pfh.pf_fd);
+    if (pf_fd != -1) {
+      ::close(pf_fd);
     }
     return ret;
   }
@@ -110,9 +123,9 @@ int pidfile_remove()
   // only remove it if it has OUR pid in it!
   char buf[32];
   memset(buf, 0, sizeof(buf));
-  ssize_t res = safe_read(pfh.pf_fd, buf, sizeof(buf));
-  if (pfh.pf_fd != -1) {
-    ::close(pfh.pf_fd);
+  ssize_t res = safe_read(pf_fd, buf, sizeof(buf));
+  if (pf_fd != -1) {
+    ::close(pf_fd);
   }
 
   if (res < 0) {
@@ -123,11 +136,11 @@ int pidfile_remove()
   if (a != getpid()) {
     return -EDOM;
   }
-  res = ::unlink(pfh.pf_path);
+  res = ::unlink(pf_path);
   if (res) {
     return res;
   }
-  pfh.close();
+  close();
   return 0;
 }
 
