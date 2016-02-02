@@ -547,6 +547,7 @@ function activate_osd() {
     ceph_args+=" --osd-class-dir=.libs"
     ceph_args+=" --run-dir=$dir"
     ceph_args+=" --debug-osd=20"
+    ceph_args+=" --debug-ms=1"
     ceph_args+=" --log-file=$dir/\$name.log"
     ceph_args+=" --pid-file=$dir/\$name.pid"
     ceph_args+=" "
