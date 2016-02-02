@@ -708,11 +708,6 @@ static simple_spinlock_t buffer_debug_lock = SIMPLE_SPINLOCK_INITIALIZER;
       bdout << "ptr " << this << " get " << _raw << bendl;
     }
   }
-  buffer::ptr::ptr(ptr&& p) : _raw(p._raw), _off(p._off), _len(p._len)
-  {
-    p._raw = nullptr;
-    p._off = p._len = 0;
-  }
   buffer::ptr::ptr(const ptr& p, unsigned o, unsigned l)
     : _raw(p._raw), _off(p._off + o), _len(l)
   {
@@ -1588,12 +1583,6 @@ static simple_spinlock_t buffer_debug_lock = SIMPLE_SPINLOCK_INITIALIZER;
       push_back(bp);
   }
 
-  void buffer::list::append(ptr&& bp)
-  {
-    if (bp.length())
-      push_back(std::move(bp));
-  }
-
   void buffer::list::append(const ptr& bp, unsigned off, unsigned len)
   {
     assert(len+off <= bp.length());
@@ -1608,7 +1597,8 @@ static simple_spinlock_t buffer_debug_lock = SIMPLE_SPINLOCK_INITIALIZER;
       }
     }
     // add new item to list
-    push_back(ptr(bp, off, len));
+    ptr tempbp(bp, off, len);
+    push_back(tempbp);
   }
 
   void buffer::list::append(const list& bl)
@@ -1635,7 +1625,7 @@ static simple_spinlock_t buffer_debug_lock = SIMPLE_SPINLOCK_INITIALIZER;
   {
     ptr bp(len);
     bp.zero();
-    append(std::move(bp));
+    append(bp);
   }
 
   
@@ -1844,7 +1834,7 @@ void buffer::list::encode_base64(buffer::list& o)
   bufferptr bp(length() * 4 / 3 + 3);
   int l = ceph_armor(bp.c_str(), bp.c_str() + bp.length(), c_str(), c_str() + length());
   bp.set_length(l);
-  o.push_back(std::move(bp));
+  o.push_back(bp);
 }
 
 void buffer::list::decode_base64(buffer::list& e)
@@ -1859,7 +1849,7 @@ void buffer::list::decode_base64(buffer::list& e)
   }
   assert(l <= (int)bp.length());
   bp.set_length(l);
-  push_back(std::move(bp));
+  push_back(bp);
 }
 
   
@@ -1913,7 +1903,7 @@ ssize_t buffer::list::read_fd(int fd, size_t len)
   ssize_t ret = safe_read(fd, (void*)bp.c_str(), len);
   if (ret >= 0) {
     bp.set_length(ret);
-    append(std::move(bp));
+    append(bp);
   }
   return ret;
 }
@@ -1922,7 +1912,8 @@ int buffer::list::read_fd_zero_copy(int fd, size_t len)
 {
 #ifdef CEPH_HAVE_SPLICE
   try {
-    append(buffer::create_zero_copy(len, fd, NULL));
+    bufferptr bp = buffer::create_zero_copy(len, fd, NULL);
+    append(bp);
   } catch (buffer::error_code &e) {
     return e.code;
   } catch (buffer::malformed_input &e) {

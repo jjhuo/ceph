@@ -1030,8 +1030,10 @@ int MemStore::_zero(const coll_t& cid, const ghobject_t& oid,
 {
   dout(10) << __func__ << " " << cid << " " << oid << " " << offset << "~"
 	   << len << dendl;
+  bufferptr bp(len);
+  bp.zero();
   bufferlist bl;
-  bl.append_zero(len);
+  bl.push_back(bp);
   return _write(cid, oid, offset, len, bl);
 }
 
@@ -1420,7 +1422,9 @@ int MemStore::BufferlistObject::write(uint64_t offset, const bufferlist &src)
     newdata.substr_of(data, 0, offset);
   } else {
     newdata.substr_of(data, 0, get_size());
-    newdata.append(offset - get_size());
+    bufferptr bp(offset - get_size());
+    bp.zero();
+    newdata.append(bp);
   }
 
   newdata.append(src);
@@ -1465,7 +1469,9 @@ int MemStore::BufferlistObject::truncate(uint64_t size)
   } else if (get_size() == size) {
     // do nothing
   } else {
-    data.append_zero(size - get_size());
+    bufferptr bp(size - get_size());
+    bp.zero();
+    data.append(bp);
   }
   return 0;
 }
@@ -1526,7 +1532,7 @@ int MemStore::PageSetObject::read(uint64_t offset, uint64_t len, bufferlist& bl)
 
   tls_pages.clear(); // drop page refs
 
-  bl.append(std::move(buf));
+  bl.append(buf);
   return len;
 }
 

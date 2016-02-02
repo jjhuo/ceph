@@ -75,7 +75,8 @@ public:
     void pread(uint64_t _offset, uint64_t len) {
       offset = _offset;
       length = len;
-      bl.append(buffer::create_page_aligned(length));
+      bufferptr p = buffer::create_page_aligned(length);
+      bl.append(p);
       io_prep_pread(&iocb, fd, p.c_str(), length, offset);
     }
 

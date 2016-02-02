@@ -161,16 +161,19 @@ static void alloc_aligned_buffer(bufferlist& data, unsigned len, unsigned off)
     // head
     unsigned head = 0;
     head = MIN(CEPH_PAGE_SIZE - (off & ~CEPH_PAGE_MASK), left);
-    data.push_back(buffer::create(head));
+    bufferptr bp = buffer::create(head);
+    data.push_back(bp);
     left -= head;
   }
   unsigned middle = left & CEPH_PAGE_MASK;
   if (middle > 0) {
-    data.push_back(buffer::create_page_aligned(middle));
+    bufferptr bp = buffer::create_page_aligned(middle);
+    data.push_back(bp);
     left -= middle;
   }
   if (left) {
-    data.push_back(buffer::create(left));
+    bufferptr bp = buffer::create(left);
+    data.push_back(bp);
   }
 }
 
@@ -724,9 +727,10 @@ void AsyncConnection::process()
           // read front
           unsigned front_len = current_header.front_len;
           if (front_len) {
-            if (!front.length())
-              front.push_back(buffer::create(front_len));
-
+            if (!front.length()) {
+              bufferptr ptr = buffer::create(front_len);
+              front.push_back(ptr);
+            }
             r = read_until(front_len, front.c_str());
             if (r < 0) {
               ldout(async_msgr->cct, 1) << __func__ << " read message front failed" << dendl;
@@ -746,9 +750,10 @@ void AsyncConnection::process()
           // read middle
           unsigned middle_len = current_header.middle_len;
           if (middle_len) {
-            if (!middle.length())
-              middle.push_back(buffer::create(middle_len));
-
+            if (!middle.length()) {
+              bufferptr ptr = buffer::create(middle_len);
+              middle.push_back(ptr);
+            }
             r = read_until(middle_len, middle.c_str());
             if (r < 0) {
               ldout(async_msgr->cct, 1) << __func__ << " read message middle failed" << dendl;

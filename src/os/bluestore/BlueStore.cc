@@ -860,7 +860,7 @@ int BlueStore::_write_bdev_label(string path, bluestore_bdev_label_t label)
   assert(bl.length() <= BDEV_LABEL_BLOCK_SIZE);
   bufferptr z(BDEV_LABEL_BLOCK_SIZE - bl.length());
   z.zero();
-  bl.append(std::move(z));
+  bl.append(z);
 
   int fd = ::open(path.c_str(), O_WRONLY);
   if (fd < 0) {
@@ -2611,7 +2611,9 @@ int BlueStore::_do_read(
 	// unwritten (zero) extent
 	dout(30) << __func__ << " data " << bp->first << ": " << bp->second
 		 << ", use " << x_len << " zeros" << dendl;
-	bl.append_zero(x_len);
+	bufferptr bp(x_len);
+	bp.zero();
+	bl.push_back(bp);
       }
       offset += x_len;
       length -= x_len;
@@ -2628,7 +2630,9 @@ int BlueStore::_do_read(
 
     // zero.
     dout(30) << __func__ << " zero " << offset << "~" << x_len << dendl;
-    bl.append_zero(x_len);
+    bufferptr bp(x_len);
+    bp.zero();
+    bl.push_back(bp);
     offset += x_len;
     length -= x_len;
     continue;
@@ -5551,8 +5555,10 @@ int BlueStore::_do_write_zero(
   uint64_t offset,
   uint64_t length)
 {
+  bufferptr z(length);
+  z.zero();
   bufferlist zl;
-  zl.append_zero(length);
+  zl.push_back(z);
   return _do_write(txc, c, o, offset, length, zl, 0);
 }
 

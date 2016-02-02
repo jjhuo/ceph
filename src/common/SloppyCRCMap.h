@@ -34,7 +34,9 @@ public:
     //zero_crc = ceph_crc32c(0xffffffff, NULL, block_size);
     if (b) {
       bufferlist bl;
-      bl.append_zero(block_size);
+      bufferptr bp(block_size);
+      bp.zero();
+      bl.append(bp);
       zero_crc = bl.crc32c(crc_iv);
     } else {
       zero_crc = crc_iv;
